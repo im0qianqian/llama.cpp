@@ -861,6 +861,9 @@ class TextModel(ModelBase):
         if chkhsh == "96a5f08be6259352137b512d4157e333e21df7edd3fcd152990608735a65b224":
             # ref: https://huggingface.co/inclusionAI/Ling-lite
             res = "bailingmoe"
+        if chkhsh == "0cb00ada81d42e4d3c5c1a74a67cfb4aa250a31de9c47b951a21f82a54c7e336":
+            # ref: https://huggingface.co/inclusionAI/Ling-lite
+            res = "bailing-bt2"
         if chkhsh == "d353350c764d8c3b39c763113960e4fb4919bea5fbf208a0e3b22e8469dc7406":
             # ref: https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct
             res = "llama4"
