@@ -7834,9 +7834,8 @@ class BailingMoeV2Model(TextModel):
     def set_gguf_parameters(self):
         super().set_gguf_parameters()
         hparams = self.hparams
-        if (rope_dim := hparams.get("head_dim")) is None:
-            rope_dim = hparams["hidden_size"] // hparams["num_attention_heads"]
 
+        rope_dim = int(hparams['partial_rotary_factor'] * hparams['head_dim'])
         self.gguf_writer.add_rope_dimension_count(rope_dim)
         rope_scaling = self.hparams.get("rope_scaling") or {}
         if rope_scaling.get("rope_type", rope_scaling.get("type")) == "yarn" and "factor" in rope_scaling:
@@ -7848,10 +7847,16 @@ class BailingMoeV2Model(TextModel):
         self.gguf_writer.add_leading_dense_block_count(hparams["first_k_dense_replace"])
         self.gguf_writer.add_vocab_size(hparams["vocab_size"])
         self.gguf_writer.add_expert_feed_forward_length(hparams["moe_intermediate_size"])
-        self.gguf_writer.add_expert_weights_scale(1.0)
+        self.gguf_writer.add_expert_weights_scale(hparams["routed_scaling_factor"])
         self.gguf_writer.add_expert_count(hparams["num_experts"])
         self.gguf_writer.add_expert_shared_count(hparams["num_shared_experts"])
         self.gguf_writer.add_expert_weights_norm(hparams["norm_topk_prob"])
+        if hparams["score_function"] == "sigmoid":
+            self.gguf_writer.add_expert_gating_func(gguf.ExpertGatingFuncType.SIGMOID)
+        elif hparams["score_function"] == "softmax":
+            self.gguf_writer.add_expert_gating_func(gguf.ExpertGatingFuncType.SOFTMAX)
+        else:
+            raise ValueError(f"Unsupported score_function value: {hparams['score_function']}")
 
     _experts: list[dict[str, Tensor]] | None = None
 
