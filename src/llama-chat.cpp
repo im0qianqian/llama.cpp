@@ -63,6 +63,7 @@ static const std::map<std::string, llm_chat_template> LLM_CHAT_TEMPLATES = {
     { "megrez",            LLM_CHAT_TEMPLATE_MEGREZ            },
     { "yandex",            LLM_CHAT_TEMPLATE_YANDEX            },
     { "bailing",           LLM_CHAT_TEMPLATE_BAILING           },
+    { "bailing-v2",        LLM_CHAT_TEMPLATE_BAILING           },
     { "llama4",            LLM_CHAT_TEMPLATE_LLAMA4            },
     { "smolvlm",           LLM_CHAT_TEMPLATE_SMOLVLM           },
     { "hunyuan-moe",       LLM_CHAT_TEMPLATE_HUNYUAN_MOE       },
