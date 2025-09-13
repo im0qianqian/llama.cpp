@@ -189,7 +189,7 @@ llm_chat_template llm_chat_detect_template(const std::string & tmpl) {
         return LLM_CHAT_TEMPLATE_MEGREZ;
     } else if (tmpl_contains(" Ассистент:")) {
         return LLM_CHAT_TEMPLATE_YANDEX;
-    } else if (tmpl_contains("<role>ASSISTANT</role>") && tmpl_contains("'HUMAN'")) {
+    } else if (tmpl_contains("<role>ASSISTANT</role>") && tmpl_contains("HUMAN")) {
         return LLM_CHAT_TEMPLATE_BAILING;
     } else if (tmpl_contains("<|header_start|>") && tmpl_contains("<|header_end|>")) {
         return LLM_CHAT_TEMPLATE_LLAMA4;
