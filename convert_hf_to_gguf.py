@@ -7917,7 +7917,7 @@ class BailingMoeV2Model(TextModel):
             'attention.dense': 'self_attn.dense',
             'attention.key_layernorm': 'self_attn.key_layernorm',
             'attention.query_layernorm': 'self_attn.query_layernorm',
-            'mlp.gate.expert_bias': 'mlp.gate.e_score_correction',
+            'mlp.gate.expert_bias': 'mlp.gate.e_score_correction.bias',
         }
         for k, v in pre_tensor_name_mapping.items():
             name = name.replace(k, v)
