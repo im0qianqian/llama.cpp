@@ -7860,14 +7860,6 @@ class BailingMoeV2Model(TextModel):
 
     _experts: list[dict[str, Tensor]] | None = None
 
-    @staticmethod
-    def permute(weights: Tensor, n_head: int, n_head_kv: int | None):
-        if n_head_kv is not None and n_head != n_head_kv:
-            n_head = n_head_kv
-        return (weights.reshape(n_head, 2, weights.shape[0] // n_head // 2, *weights.shape[1:])
-                .swapaxes(1, 2)
-                .reshape(weights.shape))
-
     def modify_tensors(self, data_torch: Tensor, name: str, bid: int | None) -> Iterable[tuple[str, Tensor]]:
         if name.endswith("query_key_value.weight"):
             n_head = self.hparams["num_attention_heads"]
@@ -7878,8 +7870,8 @@ class BailingMoeV2Model(TextModel):
             q, k, v = data_torch.split([n_head * head_dim, n_kv_head * head_dim, n_kv_head * head_dim], dim=-2)
 
             return [
-                (self.format_tensor_name(gguf.MODEL_TENSOR.ATTN_Q, bid), self.permute(q, n_head, n_head)),
-                (self.format_tensor_name(gguf.MODEL_TENSOR.ATTN_K, bid), self.permute(k, n_head, n_kv_head)),
+                (self.format_tensor_name(gguf.MODEL_TENSOR.ATTN_Q, bid), q),
+                (self.format_tensor_name(gguf.MODEL_TENSOR.ATTN_K, bid), k),
                 (self.format_tensor_name(gguf.MODEL_TENSOR.ATTN_V, bid), v)
             ]
         elif name.find("mlp.experts") != -1:
