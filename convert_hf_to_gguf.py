@@ -7861,6 +7861,12 @@ class BailingMoeV2Model(TextModel):
     _experts: list[dict[str, Tensor]] | None = None
 
     def modify_tensors(self, data_torch: Tensor, name: str, bid: int | None) -> Iterable[tuple[str, Tensor]]:
+        # skip Multi-Token Prediction (MTP) layers
+        block_count = self.hparams["num_hidden_layers"]
+        match = re.match(r"model.layers.(\d+)", name)
+        if match and int(match.group(1)) >= block_count:
+            return []
+
         if name.endswith("query_key_value.weight"):
             n_head = self.hparams["num_attention_heads"]
             n_kv_head = self.hparams.get("num_key_value_heads")
