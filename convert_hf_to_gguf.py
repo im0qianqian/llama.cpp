@@ -7828,6 +7828,28 @@ class BailingMoeModel(TextModel):
 class BailingMoeV2Model(TextModel):
     model_arch = gguf.MODEL_ARCH.BAILINGMOE_V2
 
+    @staticmethod
+    def permute(
+        weights: Tensor, n_head: int, n_head_kv: int | None, rope_dim: int | None
+    ):
+        if n_head_kv is not None and n_head != n_head_kv:
+            n_head = n_head_kv
+        if rope_dim is None:
+            rope_dim = weights.shape[0] // n_head
+        weights_rope, weights_nope = weights.reshape(
+            n_head, weights.shape[0] // n_head, *weights.shape[1:]
+        ).split([rope_dim, weights.shape[0] // n_head - rope_dim], dim=1)
+        return torch.cat(
+            [
+                weights_rope.reshape(
+                    n_head, 2, rope_dim // 2, *weights_rope.shape[2:]
+                )
+                .swapaxes(1, 2)
+                .reshape(weights_rope.shape),
+                weights_nope,
+            ], dim=1
+        ).reshape(weights.shape)
+
     def set_vocab(self):
         self._set_vocab_gpt2()
 
@@ -7867,6 +7889,7 @@ class BailingMoeV2Model(TextModel):
         if match and int(match.group(1)) >= block_count:
             return []
 
+        rope_dim = int(self.hparams['partial_rotary_factor'] * self.hparams['head_dim'])
         if name.endswith("query_key_value.weight"):
             n_head = self.hparams["num_attention_heads"]
             n_kv_head = self.hparams.get("num_key_value_heads")
@@ -7876,10 +7899,18 @@ class BailingMoeV2Model(TextModel):
             q, k, v = data_torch.split([n_head * head_dim, n_kv_head * head_dim, n_kv_head * head_dim], dim=-2)
 
             return [
-                (self.format_tensor_name(gguf.MODEL_TENSOR.ATTN_Q, bid), q),
-                (self.format_tensor_name(gguf.MODEL_TENSOR.ATTN_K, bid), k),
+                (self.format_tensor_name(gguf.MODEL_TENSOR.ATTN_Q, bid), BailingMoeV2Model.permute(q, n_head, n_head, rope_dim)),
+                (self.format_tensor_name(gguf.MODEL_TENSOR.ATTN_K, bid), BailingMoeV2Model.permute(k, n_head, n_kv_head, rope_dim)),
                 (self.format_tensor_name(gguf.MODEL_TENSOR.ATTN_V, bid), v)
             ]
+        elif "attention.key_layernorm" in name or "attention.query_layernorm" in name:
+            mapping = {
+                "attention.key_layernorm": "self_attn.key_layernorm",
+                "attention.query_layernorm": "self_attn.query_layernorm",
+            }
+            for k, v in mapping.items():
+                name = name.replace(k, v)
+            return [(self.map_tensor_name(name), BailingMoeV2Model.permute(data_torch, 1, 1, rope_dim))]
         elif name.find("mlp.experts") != -1:
             n_experts = self.hparams["num_experts"]
             assert bid is not None
@@ -7912,10 +7943,8 @@ class BailingMoeV2Model(TextModel):
             return tensors
 
         pre_tensor_name_mapping = {
-            'attention.dense': 'self_attn.dense',
-            'attention.key_layernorm': 'self_attn.key_layernorm',
-            'attention.query_layernorm': 'self_attn.query_layernorm',
-            'mlp.gate.expert_bias': 'mlp.gate.e_score_correction.bias',
+            "attention.dense": "self_attn.dense",
+            "mlp.gate.expert_bias": "mlp.gate.e_score_correction.bias",
         }
         for k, v in pre_tensor_name_mapping.items():
             name = name.replace(k, v)
