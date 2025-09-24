@@ -978,7 +978,7 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
     }
 
     // select top n_group_exp expert groups
-    if (arch == LLM_ARCH_BAILINGMOE2) {
+    if (false && arch == LLM_ARCH_BAILINGMOE2) {
         const int64_t n_exp_per_group = n_expert / hparams.n_expert_groups;
 
         // organize experts into n_expert_groups
@@ -1020,7 +1020,7 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
         ggml_tensor * weights_sum = ggml_sum_rows(ctx0, weights); // [1, n_tokens]
         cb(weights_sum, "ffn_moe_weights_sum", il);
 
-        if (arch == LLM_ARCH_BAILINGMOE2) {
+        if (false && arch == LLM_ARCH_BAILINGMOE2) {
             weights_sum = ggml_scale_bias(ctx0, weights_sum, 1.0, 1e-20);
             cb(weights_sum, "ffn_moe_weights_sum_biased", il);
         }
